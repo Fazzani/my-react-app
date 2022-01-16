@@ -1,28 +1,47 @@
-import logo from './logo.svg';
-import './App.css';
-import { UpDataGrid, UpBox } from '@up-group-ui/react-controls';
+import { UpCodeViewer, UpDataGrid } from '@up-group-ui/react-controls';
+import { useState } from 'react';
 
 const data: any[] = [];
-for (var i = 0; i < 50; i++) {
+for (var i = 0; i < 5; i++) {
   data.push({
     c1: 'Value ' + i,
     c2: false,
-    c3: 'Value 3',
     c4: { Libelle: 'Suivi', Couleur: '#369' },
+    id: i,
   });
 }
 
+class SpecifiqueCellFormatter {
+  format(item, column, additionalProps) {
+    // console.log('additionalProps', additionalProps)
+    return <EditableCell column={column} item={item} applyChanges={additionalProps}></EditableCell>;
+  }
+}
+
+const EditableCell = ({ item, column: { field }, applyChanges }) => {
+  // We need to keep and update the state of the cell normally
+  const [value, setValue] = useState(item[field]);
+  const onChange = (e) => {
+    setValue(e.target.value);
+  };
+  // We'll only update the external data when the input is blurred
+  const onBlur = () => {
+    item[field] = value;
+    applyChanges(item);
+  };
+  return <input value={value} onChange={onChange} onBlur={onBlur} />;
+};
+
 function App() {
+  const [datas, setDatas] = useState(data);
+  const applyChanges = (value) => (item) => {
+    const copyDatas = [...datas];
+    copyDatas[datas.findIndex((x) => x.id === item.id)] = item;
+    setDatas(copyDatas);
+  };
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-      </header>
-      <UpBox></UpBox>
-      {/* <UpDataGrid
+      <UpDataGrid
         isPaginationEnabled={false}
         isSelectionEnabled={false}
         isSortEnabled={false}
@@ -36,11 +55,8 @@ function App() {
             label: 'Col 2',
             field: 'c2',
             type: 'boolean',
-            isSortable: true,
-          },
-          {
-            label: 'Col 3',
-            field: 'c3',
+            formatter: new SpecifiqueCellFormatter(),
+            getFormatterProps: applyChanges,
             isSortable: true,
           },
           {
@@ -49,11 +65,9 @@ function App() {
             isSortable: true,
           },
         ]}
-        data={data}
-      /> */}
-      <a className="App-link" href="https://reactjs.org" target="_blank" rel="noopener noreferrer">
-        Learn React
-      </a>
+        data={datas}
+      />
+      <UpCodeViewer language="json" code={JSON.stringify(datas, null, 2)} height={'auto'}></UpCodeViewer>
     </div>
   );
 }
