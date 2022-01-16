@@ -1,24 +1,26 @@
-import { UpCodeViewer, UpDataGrid } from '@up-group-ui/react-controls';
-import { useState } from 'react';
+import { UpCodeViewer, UpDataGrid, UpSelect } from '@up-group-ui/react-controls';
+import { UpInput } from '@up-group-ui/react-controls/dist/Components/Inputs/Input/UpInput';
+import { useState, useEffect } from 'react';
+import './App.css';
 
 const data: any[] = [];
-for (var i = 0; i < 5; i++) {
+for (var i = 0; i < 3; i++) {
   data.push({
     c1: 'Value ' + i,
     c2: false,
+    genre: '',
     c4: { Libelle: 'Suivi', Couleur: '#369' },
     id: i,
   });
 }
 
-class SpecifiqueCellFormatter {
+class EditableCellCellFormatter {
   format(item, column, additionalProps) {
-    // console.log('additionalProps', additionalProps)
     return <EditableCell column={column} item={item} applyChanges={additionalProps}></EditableCell>;
   }
 }
 
-const EditableCell = ({ item, column: { field }, applyChanges }) => {
+const EditableCell = ({ item, column: { field }, applyChanges: { apply, type } }) => {
   // We need to keep and update the state of the cell normally
   const [value, setValue] = useState(item[field]);
   const onChange = (e) => {
@@ -27,24 +29,67 @@ const EditableCell = ({ item, column: { field }, applyChanges }) => {
   // We'll only update the external data when the input is blurred
   const onBlur = () => {
     item[field] = value;
-    applyChanges(item);
+    apply(item);
   };
-  return <input value={value} onChange={onChange} onBlur={onBlur} />;
+
+  useEffect(() => {
+    if (type === 'select') {
+      onBlur();
+    }
+  }, [type, value]);
+
+  if (type === 'select')
+    return (
+      <UpSelect
+        isRequired={true}
+        allowClear={true}
+        default={2}
+        multiple={false}
+        returnType={'id'}
+        valueKey={'id'}
+        tooltip="Genre"
+        data={[
+          { id: 1, text: 'M.' },
+          { id: 2, text: 'Mme' },
+          { id: 3, text: 'Mlle' },
+          { id: 4, text: 'Dr' },
+        ]}
+        onChange={onChange}
+      />
+    );
+  return <UpInput value={value} onChange={onChange} onBlur={onBlur} className="auto-width" />;
 };
 
 function App() {
   const [datas, setDatas] = useState(data);
-  const applyChanges = (value) => (item) => {
-    const copyDatas = [...datas];
-    copyDatas[datas.findIndex((x) => x.id === item.id)] = item;
-    setDatas(copyDatas);
-  };
+
+  const applyChanges = (value) => ({
+    apply: (item) => {
+      const copyDatas = [...datas];
+      copyDatas[datas.findIndex((x) => x.id === item.id)] = item;
+      setDatas(copyDatas);
+    },
+    type: 'input',
+  });
+
+  const applyChanges2 = (value) => ({
+    apply: (item) => {
+      const copyDatas = [...datas];
+      copyDatas[datas.findIndex((x) => x.id === item.id)] = item;
+      setDatas(copyDatas);
+    },
+    type: 'select',
+  });
+
   return (
     <div className="App">
       <UpDataGrid
-        isPaginationEnabled={false}
-        isSelectionEnabled={false}
-        isSortEnabled={false}
+        onSelectionChange={(a, b) => {
+          console.log(a, b);
+        }}
+        isPaginationEnabled={true}
+        isSelectionEnabled={true}
+        isSortEnabled={true}
         columns={[
           {
             label: 'Col 1',
@@ -55,8 +100,15 @@ function App() {
             label: 'Col 2',
             field: 'c2',
             type: 'boolean',
-            formatter: new SpecifiqueCellFormatter(),
+            formatter: new EditableCellCellFormatter(),
             getFormatterProps: applyChanges,
+            isSortable: true,
+          },
+          {
+            label: 'Genre',
+            field: 'genre',
+            formatter: new EditableCellCellFormatter(),
+            getFormatterProps: applyChanges2,
             isSortable: true,
           },
           {
